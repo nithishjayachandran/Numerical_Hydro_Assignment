@@ -5,3 +5,13 @@ This file contains the logs and discussions
 Some ideas for novelty: a bullet like shape, redefining the param_props function in our own method
 
 Experimenting with fully submerged hydrofoil, maybe also looking at varying pitch (angle of attack - alpha) along the blade length.
+
+
+Airfoil shape
+- velocity of wind
+- Cord length
+- angle of attack
+
+Calculate force
+Calculate force moment
+Use realistic numbers of an existing plane to see what happends
