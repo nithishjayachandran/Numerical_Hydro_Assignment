@@ -5,7 +5,7 @@ using Markdown
 using InteractiveUtils
 
 # ╔═╡ 75e7931e-aa95-4f30-8117-7b15c9344dbd
-begin
+begin 
 	using StaticArrays
 	using Plots
 	using TypedTables
@@ -41,6 +41,57 @@ $[S_x,S_y,S_z] = R[\cos(θ₂)\sin(θ₁),\sin(θ₂)\sin(θ₁),\cos(θ₁)]$
 
 where `θ₁,θ₂` are the azimuth and polar angles.
 """
+
+# ╔═╡ a8c0bcf7-098b-4d92-9301-21d8185f0d3c
+# ╠═╡ disabled = true
+#=╠═╡
+function wing(h; c=1, r=4, α=1)
+    S(u) = [c/2 *(1+r/2 *cos(u)) - r*sin(u)*sin(α), c/2 *r*sin(u)*cos(α), c/2 *(1+r/2 *cos(u)) - r*cos(u)*sin(α)]
+    du = π / round(π * c / h) # azimuth step size
+    mapreduce(vcat, 0:du:π) do u
+        param_props.(S, u, du)  # Discretize along the azimuthal angle only
+    end |> Table
+end
+  ╠═╡ =#
+
+# ╔═╡ df626e53-e948-4440-bd29-61017aecb689
+# ╠═╡ disabled = true
+#=╠═╡
+function cilinder(h; R=1)
+    function S(u, R, z)
+        if z > 0
+            return SA[R*cos(u), R*sin(u), z]
+        else
+            return SA[R*2*cos(u), R*2*sin(u), z]
+        end
+    end
+    du = 2π / round(2π * R / h) # azimuth step size
+    mapreduce(vcat, 0:du:2π) do u
+        dv = h # polar step size at this azimuth
+        param_props.(S, u, R, 0:dv:2π, du, dv)
+    end |> Table
+end
+  ╠═╡ =#
+
+# ╔═╡ 41f2c090-aafc-4eaa-8926-d122d3be1ee4
+# ╠═╡ disabled = true
+#=╠═╡
+function sphere2(h; R=1)
+    function S(θ₁, θ₂)
+        if θ₁ > 1/2*π
+            return R .* SA[cos(θ₂)*sin(θ₁), sin(θ₂)*sin(θ₁), cos(θ₁)]
+		else
+            return R .* SA[cos(θ₂)*sin(θ₁), sin(θ₂)*sin(θ₁), 2*cos(θ₁)]  # Modify behavior here
+        end
+    end
+    
+    dθ₁ = π / round(π * R / h) # azimuth step size
+    mapreduce(vcat, 0.5dθ₁:dθ₁:π) do θ₁
+        dθ₂ = 2π / round(2π * R * sin(θ₁) / h) # polar step size at this azimuth
+        param_props.(S, θ₁, 0.5dθ₂:dθ₂:2π, dθ₁, dθ₂)
+    end |> Table
+end
+  ╠═╡ =#
 
 # ╔═╡ 71df011e-bf21-47c3-85f0-18a9aca54fee
 md"""
@@ -249,8 +300,42 @@ function pillow(h;R=1)
     end |> Table
 end
 
+# ╔═╡ ec75eab0-824e-498f-95d0-5eb8b15b2766
+function Torus(h; R=1, r=4, a=1)
+    S(u, v) = SA[(R + r * cos(v) * (a + sin(u))) * cos(u), (R + r * cos(v) * (a + sin(u))) * sin(u), r * sin(v) * (a + sin(u))]
+    du = 2π / round(2π * R / h) # azimuth step size
+    mapreduce(vcat, 0:du:2π) do u
+        dv = 2π / round(2π * R * sin(u) / h) # polar step size at this azimuth
+        param_props.(S, u, 0:dv:2π, du, dv)
+    end |> Table
+end
+
+# ╔═╡ 7fb06ddd-76c6-44fd-a0dd-ac4af57b1ba6
+function sphere2(h; R=1)
+    function S(θ₁, θ₂)
+		if 1/4*π<θ₁ < 3/4 * pi
+            return R .* SA[cos(θ₂), sin(θ₂), cos(θ₁)]
+		elseif θ₁ < 1/4*π
+            return R .* SA[cos(θ₂)*sin(2*θ₁),sin(θ₂)*sin(2*θ₁), cos(θ₁)]
+			#return R .* SA[1/(1/2 * sqrt(2)) * cos(θ₂)*sin(θ₁),1/(1/2 * sqrt(2))* sin(θ₂)*sin(θ₁), cos(θ₁)]  # Modify behavior here
+		else 
+			return R .* SA[cos(θ₂)*sin(2*θ₁),sin(θ₂)*sin(2*θ₁), -1/2 * sqrt(2)]
+			
+		end
+    end
+    
+    dθ₁ = π / round(π * R / h) # azimuth step size
+    mapreduce(vcat, 0.5dθ₁:dθ₁:π) do θ₁
+        dθ₂ = 2π / round(2π * R * sin(θ₁) / h) # polar step size at this azimuth
+        param_props.(S, θ₁, 0.5dθ₂:dθ₂:2π, dθ₁, dθ₂)
+    end |> Table
+end
+
+
+#return R .* SA[cos(θ₂),sin(θ₂),cos(θ₁)]
+
 # ╔═╡ ceaa01da-9fba-454f-8a98-a13874f72295
-h = 0.1; panels = pillow(h); display(panels)
+h = 0.05; panels = sphere2(h); display(panels)
 
 # ╔═╡ 7d7397ad-8f64-41c8-9742-62921d21be9c
 begin 
@@ -265,16 +350,6 @@ begin
 	A_error = sum(panels.dA)/4π-1
 	plot(z,panels.dA/h^2,ylim=(0,2),xlabel="z",ylabel="dA/h²",legend=false, 
 		title="Total surface area error: $(round(100A_error,digits=1))%")
-end
-
-# ╔═╡ ec75eab0-824e-498f-95d0-5eb8b15b2766
-function Torus(h; R=1, r=1, a=1)
-    S(u, v) = SA[(R + r * cos(v) * (a + sin(u))) * cos(u), (R + r * cos(v) * (a + sin(u))) * sin(u), r * sin(v) * (a + sin(u))]
-    du = 2π / round(2π * R / h) # azimuth step size
-    mapreduce(vcat, 0:du:2π) do u
-        dv = 2π / round(2π * R * sin(u) / h) # polar step size at this azimuth
-        param_props.(S, u, 0:dv:2π, du, dv)
-    end |> Table
 end
 
 # ╔═╡ 2e60f358-15ee-483b-8b58-808c2e0a0e42
@@ -401,9 +476,9 @@ project_hash = "bb967b2f936c10d651383be45706ec63d0805cad"
 
 [[deps.Adapt]]
 deps = ["LinearAlgebra", "Requires"]
-git-tree-sha1 = "0fb305e0253fd4e833d486914367a2ee2c2e78d0"
+git-tree-sha1 = "e2a9873379849ce2ac9f9fa34b0e37bde5d5fe0a"
 uuid = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
-version = "4.0.1"
+version = "4.0.2"
 weakdeps = ["StaticArrays"]
 
     [deps.Adapt.extensions]
@@ -478,9 +553,9 @@ version = "0.3.0"
 
 [[deps.Compat]]
 deps = ["TOML", "UUIDs"]
-git-tree-sha1 = "75bd5b6fc5089df449b5d35fa501c846c9b6549b"
+git-tree-sha1 = "c955881e3c981181362ae4088b35995446298b80"
 uuid = "34da2185-b29b-5c13-b0c7-acf172513d20"
-version = "4.12.0"
+version = "4.14.0"
 weakdeps = ["Dates", "LinearAlgebra"]
 
     [deps.Compat.extensions]
@@ -509,9 +584,9 @@ version = "1.16.0"
 
 [[deps.DataStructures]]
 deps = ["Compat", "InteractiveUtils", "OrderedCollections"]
-git-tree-sha1 = "ac67408d9ddf207de5cfa9a97e114352430f01ed"
+git-tree-sha1 = "0f4b5d62a88d8f59003e43c25a8a90de9eb76317"
 uuid = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
-version = "0.18.16"
+version = "0.18.18"
 
 [[deps.DataValueInterfaces]]
 git-tree-sha1 = "bfc1187b79289637fa0ef6d4436ebdfe6905cbd6"
@@ -602,11 +677,10 @@ git-tree-sha1 = "21efd19106a55620a188615da6d3d06cd7f6ee03"
 uuid = "a3f928ae-7b40-5064-980b-68af3947d34b"
 version = "2.13.93+0"
 
-[[deps.Formatting]]
-deps = ["Printf"]
-git-tree-sha1 = "8339d61043228fdd3eb658d86c926cb282ae72a8"
-uuid = "59287772-0a20-5a39-b81b-1366585eb4c0"
-version = "0.4.2"
+[[deps.Format]]
+git-tree-sha1 = "f3cf88025f6d03c194d73f5d13fee9004a108329"
+uuid = "1fa38f19-a742-5d3f-a2b9-30dd87b9d5f8"
+version = "1.3.6"
 
 [[deps.ForwardDiff]]
 deps = ["CommonSubexpressions", "DiffResults", "DiffRules", "LinearAlgebra", "LogExpFunctions", "NaNMath", "Preferences", "Printf", "Random", "SpecialFunctions"]
@@ -673,9 +747,9 @@ version = "1.0.2"
 
 [[deps.HTTP]]
 deps = ["Base64", "CodecZlib", "ConcurrentUtilities", "Dates", "ExceptionUnwrapping", "Logging", "LoggingExtras", "MbedTLS", "NetworkOptions", "OpenSSL", "Random", "SimpleBufferStream", "Sockets", "URIs", "UUIDs"]
-git-tree-sha1 = "ac7b73d562b8f4287c3b67b4c66a5395a19c1ae8"
+git-tree-sha1 = "db864f2d91f68a5912937af80327d288ea1f3aee"
 uuid = "cd3eb016-35fb-5094-929b-558a96fad6f3"
-version = "1.10.2"
+version = "1.10.3"
 
 [[deps.HarfBuzz_jll]]
 deps = ["Artifacts", "Cairo_jll", "Fontconfig_jll", "FreeType2_jll", "Glib_jll", "Graphite2_jll", "JLLWrappers", "Libdl", "Libffi_jll", "Pkg"]
@@ -722,9 +796,9 @@ version = "0.21.4"
 
 [[deps.JpegTurbo_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "60b1194df0a3298f460063de985eae7b01bc011a"
+git-tree-sha1 = "3336abae9a713d2210bb57ab484b1e065edd7d23"
 uuid = "aacddb02-875f-59d6-b918-886e6ef4fbf8"
-version = "3.0.1+0"
+version = "3.0.2+0"
 
 [[deps.LAME_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -756,10 +830,10 @@ uuid = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 version = "1.3.1"
 
 [[deps.Latexify]]
-deps = ["Formatting", "InteractiveUtils", "LaTeXStrings", "MacroTools", "Markdown", "OrderedCollections", "Printf", "Requires"]
-git-tree-sha1 = "f428ae552340899a935973270b8d98e5a31c49fe"
+deps = ["Format", "InteractiveUtils", "LaTeXStrings", "MacroTools", "Markdown", "OrderedCollections", "Requires"]
+git-tree-sha1 = "cad560042a7cc108f5a4c24ea1431a9221f22c1b"
 uuid = "23fbe1c1-3f47-55db-b15f-69d7ec21a316"
-version = "0.16.1"
+version = "0.16.2"
 
     [deps.Latexify.extensions]
     DataFramesExt = "DataFrames"
@@ -839,10 +913,10 @@ uuid = "89763e89-9b03-5906-acba-b20f662cd828"
 version = "4.5.1+1"
 
 [[deps.Libuuid_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
-git-tree-sha1 = "7f3efec06033682db852f8b3bc3c1d2b0a0ab066"
+deps = ["Artifacts", "JLLWrappers", "Libdl"]
+git-tree-sha1 = "e5edc369a598dfde567269dc6add5812cfa10cd5"
 uuid = "38a345b3-de98-5d2b-a5d3-14cd9215e700"
-version = "2.36.0+0"
+version = "2.39.3+0"
 
 [[deps.LinearAlgebra]]
 deps = ["Libdl", "OpenBLAS_jll", "libblastrampoline_jll"]
@@ -940,9 +1014,9 @@ version = "0.8.1+2"
 
 [[deps.OpenSSL]]
 deps = ["BitFlags", "Dates", "MozillaCACerts_jll", "OpenSSL_jll", "Sockets"]
-git-tree-sha1 = "51901a49222b09e3743c65b8847687ae5fc78eb2"
+git-tree-sha1 = "af81a32750ebc831ee28bdaaba6e1067decef51e"
 uuid = "4d8831e6-92b7-49fb-bdf8-b643e874388c"
-version = "1.4.1"
+version = "1.4.2"
 
 [[deps.OpenSSL_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
@@ -1002,9 +1076,9 @@ version = "3.1.0"
 
 [[deps.PlotUtils]]
 deps = ["ColorSchemes", "Colors", "Dates", "PrecompileTools", "Printf", "Random", "Reexport", "Statistics"]
-git-tree-sha1 = "862942baf5663da528f66d24996eb6da85218e76"
+git-tree-sha1 = "7b1a9df27f072ac4c9c7cbe5efb198489258d1f5"
 uuid = "995b91a9-d308-5afd-9ec6-746e21dbc043"
-version = "1.4.0"
+version = "1.4.1"
 
 [[deps.Plots]]
 deps = ["Base64", "Contour", "Dates", "Downloads", "FFMPEG", "FixedPointNumbers", "GR", "JLFzf", "JSON", "LaTeXStrings", "Latexify", "LinearAlgebra", "Measures", "NaNMath", "Pkg", "PlotThemes", "PlotUtils", "PrecompileTools", "Printf", "REPL", "Random", "RecipesBase", "RecipesPipeline", "Reexport", "RelocatableFolders", "Requires", "Scratch", "Showoff", "SparseArrays", "Statistics", "StatsBase", "UUIDs", "UnicodeFun", "UnitfulLatexify", "Unzip"]
@@ -1034,9 +1108,9 @@ version = "1.2.0"
 
 [[deps.Preferences]]
 deps = ["TOML"]
-git-tree-sha1 = "00805cd429dcb4870060ff49ef443486c262e38e"
+git-tree-sha1 = "9306f6085165d270f7e3db02af26a400d580f5c6"
 uuid = "21216c6a-2e73-6563-6e65-726566657250"
-version = "1.4.1"
+version = "1.4.3"
 
 [[deps.Printf]]
 deps = ["Unicode"]
@@ -1215,9 +1289,9 @@ deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[deps.TranscodingStreams]]
-git-tree-sha1 = "54194d92959d8ebaa8e26227dbe3cdefcdcd594f"
+git-tree-sha1 = "3caa21522e7efac1ba21834a03734c57b4611c7e"
 uuid = "3bb67fe8-82b1-5028-8e26-92a6c54297fa"
-version = "0.10.3"
+version = "0.10.4"
 weakdeps = ["Random", "Test"]
 
     [deps.TranscodingStreams.extensions]
@@ -1292,9 +1366,9 @@ version = "1.31.0+0"
 
 [[deps.XML2_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Libiconv_jll", "Zlib_jll"]
-git-tree-sha1 = "801cbe47eae69adc50f36c3caec4758d2650741b"
+git-tree-sha1 = "07e470dabc5a6a4254ffebc29a1b3fc01464e105"
 uuid = "02c8fc9c-b97f-50b9-bbe4-9be30ff0a78a"
-version = "2.12.2+0"
+version = "2.12.5+0"
 
 [[deps.XSLT_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Libgcrypt_jll", "Libgpg_error_jll", "Libiconv_jll", "Pkg", "XML2_jll", "Zlib_jll"]
@@ -1304,9 +1378,9 @@ version = "1.1.34+0"
 
 [[deps.XZ_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "ac88fb95ae6447c8dda6a5503f3bafd496ae8632"
+git-tree-sha1 = "37195dcb94a5970397ad425b95a9a26d0befce3a"
 uuid = "ffd25f8a-64ca-5728-b0f7-c24cf3aae800"
-version = "5.4.6+0"
+version = "5.6.0+0"
 
 [[deps.Xorg_libICE_jll]]
 deps = ["Libdl", "Pkg"]
@@ -1518,9 +1592,9 @@ version = "1.18.0+0"
 
 [[deps.libpng_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Zlib_jll"]
-git-tree-sha1 = "873b4f805771d3e4bafe63af759a26ea8ca84d14"
+git-tree-sha1 = "1ea2ebe8ffa31f9c324e8c1d6e86b4165b84a024"
 uuid = "b53b4c65-9356-5827-b1ea-8c7a1a84506f"
-version = "1.6.42+0"
+version = "1.6.43+0"
 
 [[deps.libvorbis_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Ogg_jll", "Pkg"]
@@ -1570,6 +1644,10 @@ version = "1.4.1+1"
 # ╠═0576ce9d-dd33-4b20-915a-24421037d7c0
 # ╠═b0259677-3e78-45dc-9a4c-2f882f19764d
 # ╠═ec75eab0-824e-498f-95d0-5eb8b15b2766
+# ╠═a8c0bcf7-098b-4d92-9301-21d8185f0d3c
+# ╠═df626e53-e948-4440-bd29-61017aecb689
+# ╠═41f2c090-aafc-4eaa-8926-d122d3be1ee4
+# ╠═7fb06ddd-76c6-44fd-a0dd-ac4af57b1ba6
 # ╟─71df011e-bf21-47c3-85f0-18a9aca54fee
 # ╠═ceaa01da-9fba-454f-8a98-a13874f72295
 # ╟─6a2f8a49-6a92-45ac-b538-74f478594033
