@@ -51,6 +51,11 @@ begin
 		
 		# Function to update parameters
 	    function updateParameters(M, P, T, α)
+
+			#Calibrating the parameters
+			M = M/1000
+			P = P/100
+			T = T/1000
 	        # Recalculate airfoil coordinates
 	        yc = zeros(size(x))
 	        dycdx = zeros(size(x))
@@ -88,7 +93,7 @@ begin
 	        # Update plot
 	        plot!(f, xur, yur, linecolor=:blue, linewidth=2, label="Upper Surface")
 	        plot!(f, xlr, ylr, linecolor=:red, linewidth=2, label="Lower Surface")
-	        title!("NACA $(round(M))$(round(P/10))$(round(T)) Airfoil")
+	        title!("NACA $(round(M*1000))$(round(P*10))$(round(T*1000)) Airfoil")
 	    end
 		
 		    # Initial plot
@@ -1402,6 +1407,6 @@ version = "1.4.1+1"
 # ╠═0b80ecd5-ff96-4143-a170-d4b445ca2ce8
 # ╟─784f2c3d-63c7-4c90-a8da-6881266849b6
 # ╟─aaf38172-33f3-4c9e-8834-bc2db4363c04
-# ╟─110b684a-978a-476f-a592-00013d15e52a
+# ╠═110b684a-978a-476f-a592-00013d15e52a
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
