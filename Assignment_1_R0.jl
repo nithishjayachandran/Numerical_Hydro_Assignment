@@ -33,13 +33,11 @@ begin
 			Width(W) $(@bind W Slider(0:1:20, default=1, show_value=true))"""
 end
 
-# ╔═╡ 110b684a-978a-476f-a592-00013d15e52a
+# ╔═╡ 7c921f1d-83e5-4ffe-a4e7-1f4204ed7fa6
 begin
 	using Plots
-	#using PlutoUI
 	
 	function dotheFOIL()
-		
 	    # Number of points
 	    N = 100
 	
@@ -47,18 +45,23 @@ begin
 	    x = range(0, stop=1, length=N)
 	
 	    # Initialize plot
-	    f = plot(size=(800, 200), xlabel="x", ylabel="y", title="NACA $(round(M))$(round(P))$(round(T)) Airfoil")
-		
-		# Function to update parameters
-	    function updateParameters(M, P, T, α)
-
-			#Calibrating the parameters
-			M = M/1000
-			P = P/100
-			T = T/1000
-	        # Recalculate airfoil coordinates
+	    f = plot(size=(800, 600), xlabel="x", ylabel="y", zlabel="z", title="NACA Airfoil 3D Plot", legend=false)
+	
+	    # Define z-coordinate range
+	    z_range = range(0, stop=W, length=50)  # Adjust length as needed
+	
+	    # Function to calculate airfoil coordinates
+	    function calculate_airfoil(M, P, T, α, x)
+	        # Calibrating the parameters
+	        M /= 1000
+	        P /= 100
+	        T /= 1000
+	
+	        # Initialize arrays
 	        yc = zeros(size(x))
 	        dycdx = zeros(size(x))
+	
+	        # Calculate camber line
 	        for i = 1:length(x)
 	            if x[i] <= P
 	                yc[i] = (M/P^2)*(2*P*x[i] - x[i]^2)
@@ -68,7 +71,8 @@ begin
 	                dycdx[i] = (2*M/(1-P)^2)*(P - x[i])
 	            end
 	        end
-			# Calculate thickness distribution
+	
+	        # Calculate thickness distribution
 	        yt = 5*T*(0.2969*sqrt.(x) - 0.1260*x - 0.3516*x.^2 + 0.2843*x.^3 - 0.1015*x.^4)
 	
 	        # Calculate angle of camber line
@@ -79,27 +83,33 @@ begin
 	        xl = x + yt.*sin.(theta)
 	        yu = yc + yt.*cos.(theta)
 	        yl = yc - yt.*cos.(theta)
-
-			# Rotate airfoil by angle of attack
-			α_rad = deg2rad(α) 
-		    xur = xu .* cos(α_rad) - yu .* sin(α_rad)
-		    yur = xu .* sin(α_rad) + yu .* cos(α_rad)
-		    xlr = xl .* cos(α_rad) - yl .* sin(α_rad)
-		    ylr = xl .* sin(α_rad) + yl .* cos(α_rad)
-				
-	        # Clear previous plot
-	        plot!(f, legend=false)
 	
-	        # Update plot
-	        plot!(f, xur, yur, linecolor=:blue, linewidth=2, label="Upper Surface")
-	        plot!(f, xlr, ylr, linecolor=:red, linewidth=2, label="Lower Surface")
-	        title!("NACA $(round(M*1000))$(round(P*10))$(round(T*1000)) Airfoil")
+	        # Rotate airfoil by angle of attack
+	        α_rad = deg2rad(α)
+	        xur = xu .* cos(α_rad) - yu .* sin(α_rad)
+	        yur = xu .* sin(α_rad) + yu .* cos(α_rad)
+	        xlr = xl .* cos(α_rad) - yl .* sin(α_rad)
+	        ylr = xl .* sin(α_rad) + yl .* cos(α_rad)
+	
+	        return xur, yur, xlr, ylr
 	    end
-		
-		    # Initial plot
-	    updateParameters(M, P, T, α)
+	
+	    # Plot airfoil at different z coordinates
+	    for z in z_range
+	        # Generate airfoil coordinates
+	        xur, yur, xlr, ylr = calculate_airfoil(M, P, T, α, x)  # Example parameters, adjust as needed
+	
+	        # Plot upper surface
+	        scatter3d!(f, xur, yur, fill(z, length(xur)), color=:blue, label="Upper Surface")
+	
+	        # Plot lower surface
+	        scatter3d!(f, xlr, ylr, fill(z, length(xlr)), color=:red, label="Lower Surface")
+	    end
+	
+	    return f
 	end
 	
+	# Plot airfoil
 	dotheFOIL()
 	
 end
@@ -158,6 +168,86 @@ dy_c/dx = {
 
 
 """
+
+# ╔═╡ 110b684a-978a-476f-a592-00013d15e52a
+# ╠═╡ disabled = true
+#=╠═╡
+begin
+	using Plots
+	#using PlutoUI
+	
+	function dotheFOIL()
+		
+	    # Number of points
+	    N = 100
+	
+	    # Generate x-coordinates from 0 to 1 (chord length)
+	    x = range(0, stop=1, length=N)
+		#print(x)
+	    # Initialize plot
+	    f = plot(size=(800, 200), xlabel="x", ylabel="y", title="NACA $(round(M))$(round(P))$(round(T)) Airfoil")
+		
+		# Function to update parameters
+	    function updateParameters(M, P, T, α)
+
+			#Calibrating the parameters
+			M = M/1000
+			P = P/100
+			T = T/1000
+	        # Recalculate airfoil coordinates
+	        yc = zeros(size(x))
+	        dycdx = zeros(size(x))
+	        for i = 1:length(x)
+	            if x[i] <= P
+	                yc[i] = (M/P^2)*(2*P*x[i] - x[i]^2)
+	                dycdx[i] = (2*M/P^2)*(P - x[i])
+	            else
+	                yc[i] = (M/(1-P)^2)*((1 - 2*P) + 2*P*x[i] - x[i]^2)
+	                dycdx[i] = (2*M/(1-P)^2)*(P - x[i])
+	            end
+	        end
+			# Calculate thickness distribution
+	        yt = 5*T*(0.2969*sqrt.(x) - 0.1260*x - 0.3516*x.^2 + 0.2843*x.^3 - 0.1015*x.^4)
+	
+	        # Calculate angle of camber line
+	        theta = atan.(dycdx)
+	
+	        # Calculate upper and lower airfoil coordinates
+	        xu = x - yt.*sin.(theta)
+	        xl = x + yt.*sin.(theta)
+	        yu = yc + yt.*cos.(theta)
+	        yl = yc - yt.*cos.(theta)
+			
+			# Rotate airfoil by angle of attack
+			α_rad = deg2rad(α) 
+		    xur = xu .* cos(α_rad) - yu .* sin(α_rad)
+		    yur = xu .* sin(α_rad) + yu .* cos(α_rad)
+		    xlr = xl .* cos(α_rad) - yl .* sin(α_rad)
+		    ylr = xl .* sin(α_rad) + yl .* cos(α_rad)
+
+				
+	        # Clear previous plot
+	        plot!(f, legend=false)
+	
+	        # Update plot
+	        plot!(f, xur, yur,z, linecolor=:blue, linewidth=2, label="Upper Surface")
+	        plot!(f, xlr, ylr,z, linecolor=:red, linewidth=2, label="Lower Surface")
+	        title!("NACA $(round(M*1000))$(round(P*10))$(round(T*1000)) Airfoil")
+			#print(xur)
+			print(yur)
+	    end
+		
+		    # Initial plot
+	    updateParameters(M, P, T, α)
+	end
+	
+	dotheFOIL()
+	
+end
+  ╠═╡ =#
+
+# ╔═╡ ad6ce17c-84d7-42ff-8468-dd8dbc8eb57d
+
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -1406,7 +1496,9 @@ version = "1.4.1+1"
 # ╠═ed382959-9ae5-4c73-8996-219dbe1211cf
 # ╠═0b80ecd5-ff96-4143-a170-d4b445ca2ce8
 # ╟─784f2c3d-63c7-4c90-a8da-6881266849b6
-# ╟─aaf38172-33f3-4c9e-8834-bc2db4363c04
+# ╠═aaf38172-33f3-4c9e-8834-bc2db4363c04
 # ╠═110b684a-978a-476f-a592-00013d15e52a
+# ╠═7c921f1d-83e5-4ffe-a4e7-1f4204ed7fa6
+# ╠═ad6ce17c-84d7-42ff-8468-dd8dbc8eb57d
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
