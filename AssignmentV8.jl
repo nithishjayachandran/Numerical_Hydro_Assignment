@@ -201,7 +201,6 @@ end
 # ╔═╡ 0be6912f-03d0-47a7-8414-d715a4136422
 function dotheFOIL()
     # Generate x-coordinates from 0 to 1 (chord length)
-
 	x = range(0,stop=1,length=N_x)
 
     # Define z-coordinate range
@@ -401,8 +400,8 @@ begin
 	using LinearAlgebra
 	Flow=[1.,0.,0.]
 	b = -Uₙ.(panels, U= Flow)
-	Fn = norm(Flow)/sqrt(9.81*L)# submarine Froude number
-	Aᵏ = ∂ₙϕ.(panels,panels';G=kelvin,Fn) # Use G=kelvin(x,a;Fn)!
+	Fn = norm(Flow)/sqrt(9.81*L)
+	Aᵏ = ∂ₙϕ.(panels,panels';G=kelvin,Fn) 
 	qᵏ = Aᵏ \ b; @assert Aᵏ*qᵏ ≈ b
 	u²(x,q,panels;kwargs...) = sum(abs2,SA[-1,0,0]+∇φ(x,q,panels;kwargs...))
 	cₚᵏ = map(x->1-u²(x,qᵏ,panels;G=kelvin,Fn),panels.x)
@@ -476,14 +475,16 @@ end
 md"""
 # Part D - Convergence study and validation
 
-Next up, the results should be validaded. 
+Convergence study\
+Add more...
 
-L=∫ ab​1+(dx/dy)​ ) 
-2
- 
-​
- dx
 
+Validation\
+The area of the discretised panels can be validated. The NACA hydrofoil has a function f(x) for the surface. The length of the hydrofoil from the trailing to leading edge can then be calculated by means of the following function:\
+length of surface along the wing: $\int_{a}^{b}\sqrt{1+(\frac{dy}{dx})^2}dx$\
+Apply this function on both the top and bottom surface of the hydrofoil and multiply it by the span of the foil. This gets you the analytical solution of the surface. This then can be compared to the summation of the area of each panel. 
+
+Add more..
 
 """
 
@@ -496,15 +497,6 @@ Limitations\
 There are some limitations on the notebook. 
 - Number of panels and panel size. The panels in this notebook are all evenly spaced. This is not the best and efficient way to do it. A general rule of thumb is that, the spot on a surface with the highest curvature needs the most panels. In the case with the hydrofoil, the trailing and leading edge need the most panels, and inbetween need fewer panels. In the future this can be accounted for
 - A big limitation on the way this NACA airfoil definition is the 'gap' of panels on the upperfront part of the foil. This is because each panel is defined by a certain stepsize in x direction. If there is a high increase in y-coordinate per x-step, it is insignificantly covered by this model. A way to avoid this in the future is to make the stepsize in x direction dependent on the slope in y direction. 
-
-Add more....
-
-Validation\
-The area of the discretised panels can be validated. The NACA hydrofoil has a function f(x) for the surface. The length of the hydrofoil from the trailing to leading edge can then be calculated by means of the following function:
-\int_{a}^{b}\sqrt{1+(\frac{dy}{dx})^2}dx
-Apply this function on both the top and bottom surface of the hydrofoil and multiply it by the span of the foil. This gets you the analytical solution of the surface. This then can be compared to the summation of the area of each panel. 
-
-Add more..
 
 """
 
@@ -1795,7 +1787,7 @@ version = "1.4.1+1"
 # ╟─761fff8c-b34d-4adb-b771-0a7dd0c86bd0
 # ╠═6892364d-eb7d-4f9a-a543-4455004012e8
 # ╟─e89f1544-2a14-4c47-8138-cc90ca0b609b
-# ╟─612e849a-0264-4a88-8b75-7a174aa5773c
+# ╠═612e849a-0264-4a88-8b75-7a174aa5773c
 # ╠═b01d277e-b1e4-465f-98cb-c3e28fc7e503
 # ╟─9e4ff6c2-36be-40af-bd5d-af4ff64aeda6
 # ╠═fbd6a488-846b-4f43-b125-b7d460ed0eb1
